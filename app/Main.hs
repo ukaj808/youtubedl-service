@@ -10,10 +10,10 @@ import Web.Twain
 import Types
 import Data.UUID (toString)
 import Data.UUID.V4 (nextRandom)
-import System.Directory (createDirectory)
+import System.Directory (removeFile)
 import Control.Concurrent (forkIO)
 import System.Process (readProcess)
-import System.Directory (listDirectory)
+import System.Directory (listDirectory, removeDirectoryRecursive)
 
 main :: IO ()
 main = do
@@ -24,6 +24,7 @@ routes :: [Middleware]
 routes =
   [ get "/api/v1/:id" getAudio
   , post "/api/v1" postDownload
+  , delete "/api/v1/:id" deleteAudio
   ]
 
 missing :: ResponderM a
@@ -43,6 +44,11 @@ postDownload = do
   response <- liftIO $ processReq body
   send $ text $ T.pack response
 
+deleteAudio :: ResponderM a
+deleteAudio = do
+  id <- param "id"
+  liftIO $ removeDirectoryRecursive id
+  send $ status status204 $ text "Delete Succesful" 
 
 processReq :: DownloadReqBody -> IO String
 processReq req = do
