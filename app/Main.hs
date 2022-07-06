@@ -43,6 +43,7 @@ postDownload = do
   response <- liftIO $ processReq body
   send $ text $ T.pack response
 
+
 processReq :: DownloadReqBody -> IO String
 processReq req = do
   id <- nextRandom
@@ -53,7 +54,7 @@ processReq req = do
 
 download :: URL -> DownloadID -> IO ()
 download url id = do
-  stdOut <- readProcess "yt-dlp.exe" (defaultArgs url id) []
+  stdOut <- readProcess "./.yt-dlp/linux/yt-dlp_linux" (defaultArgs url id) []
   let result = mapResult stdOut
   publish id result
 
@@ -65,7 +66,7 @@ buildOutput :: DownloadID -> OutputFile
 buildOutput id = "./" ++ id ++ "/%(title)s.%(ext)s"
 
 defaultArgs :: URL -> DownloadID -> [String]
-defaultArgs url id = buildArgs url (buildOutput id) "mp3" "./ffmpeg/bin"
+defaultArgs url id = buildArgs url (buildOutput id) "mp3" "./.ffmpeg"
 
 buildArgs :: URL -> OutputFile -> AudioFormat -> FfmpegLocation -> [String]
 buildArgs url output format loc =
