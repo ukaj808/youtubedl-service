@@ -10,10 +10,10 @@ import Web.Twain
 import Types
 import Data.UUID (toString)
 import Data.UUID.V4 (nextRandom)
-import System.Directory (createDirectory)
+import System.Directory (removeFile)
 import Control.Concurrent (forkIO)
 import System.Process (readProcess)
-import System.Directory (listDirectory)
+import System.Directory (listDirectory, removeDirectoryRecursive)
 
 main :: IO ()
 main = do
@@ -24,6 +24,7 @@ routes :: [Middleware]
 routes =
   [ get "/api/v1/:id" getAudio
   , post "/api/v1" postDownload
+  , delete "/api/v1/:id" deleteAudio
   ]
 
 missing :: ResponderM a
@@ -32,8 +33,9 @@ missing = send $ html "Not found..."
 getAudio :: ResponderM a
 getAudio = do
   id <- param "id"
-  filePath <- liftIO $ listDirectory id
-  audioFile <- liftIO $ LAZY.readFile (id ++ "/" ++ (head filePath))
+  let dir = pathToAudio id
+  fileName <- liftIO $ listDirectory dir 
+  audioFile <- liftIO $ LAZY.readFile (dir ++ "/" ++ (head fileName))
   send $ raw status200 [(hContentType, "audio/mpeg; charset=utf-8")] audioFile
 
 postDownload :: ResponderM a
@@ -43,6 +45,12 @@ postDownload = do
   response <- liftIO $ processReq body
   send $ text $ T.pack response
 
+deleteAudio :: ResponderM a
+deleteAudio = do
+  id <- param "id"
+  let dir = pathToAudio id
+  liftIO $ removeDirectoryRecursive dir 
+  send $ status status204 $ text "Delete Succesful" 
 
 processReq :: DownloadReqBody -> IO String
 processReq req = do
@@ -63,7 +71,7 @@ publish id result = do
   print $ id ++ " " ++ (show result)
 
 buildOutput :: DownloadID -> OutputFile
-buildOutput id = "./" ++ id ++ "/%(title)s.%(ext)s"
+buildOutput id = (pathToAudio id) ++ "/%(title)s.%(ext)s"
 
 defaultArgs :: URL -> DownloadID -> [String]
 defaultArgs url id = buildArgs url (buildOutput id) "mp3" "./.ffmpeg"
@@ -75,3 +83,6 @@ buildArgs url output format loc =
 -- todo
 mapResult :: StdOut -> Result
 mapResult stdout = Success
+
+pathToAudio :: DownloadID -> FilePath
+pathToAudio id =  "./.downloads/" ++ id
