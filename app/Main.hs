@@ -33,8 +33,9 @@ missing = send $ html "Not found..."
 getAudio :: ResponderM a
 getAudio = do
   id <- param "id"
-  filePath <- liftIO $ listDirectory id
-  audioFile <- liftIO $ LAZY.readFile (id ++ "/" ++ (head filePath))
+  let dir = pathToAudio id
+  fileName <- liftIO $ listDirectory dir 
+  audioFile <- liftIO $ LAZY.readFile (dir ++ "/" ++ (head fileName))
   send $ raw status200 [(hContentType, "audio/mpeg; charset=utf-8")] audioFile
 
 postDownload :: ResponderM a
@@ -47,7 +48,8 @@ postDownload = do
 deleteAudio :: ResponderM a
 deleteAudio = do
   id <- param "id"
-  liftIO $ removeDirectoryRecursive id
+  let dir = pathToAudio id
+  liftIO $ removeDirectoryRecursive dir 
   send $ status status204 $ text "Delete Succesful" 
 
 processReq :: DownloadReqBody -> IO String
@@ -69,7 +71,7 @@ publish id result = do
   print $ id ++ " " ++ (show result)
 
 buildOutput :: DownloadID -> OutputFile
-buildOutput id = "./" ++ id ++ "/%(title)s.%(ext)s"
+buildOutput id = (pathToAudio id) ++ "/%(title)s.%(ext)s"
 
 defaultArgs :: URL -> DownloadID -> [String]
 defaultArgs url id = buildArgs url (buildOutput id) "mp3" "./.ffmpeg"
@@ -81,3 +83,6 @@ buildArgs url output format loc =
 -- todo
 mapResult :: StdOut -> Result
 mapResult stdout = Success
+
+pathToAudio :: DownloadID -> FilePath
+pathToAudio id =  "./.downloads/" ++ id
