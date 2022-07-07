@@ -38,6 +38,7 @@ executable youtubedl-service
         aeson,
         uuid,
         process,
-        directory
+        directory,
+        hedis
     hs-source-dirs:   app
     default-language: Haskell2010
