@@ -76,7 +76,7 @@ publishDownloadResult id result = do
                 | otherwise = failureEventBody id
   conn <- R.checkedConnect redisInfo
   R.runRedis conn $ do
-    R.publish statusChannel eventBody
+    R.publish resultChannel eventBody
   print $ id ++ " " ++ (show result)
 
 mapResult :: StdOut -> Result
@@ -98,25 +98,26 @@ pathToAudio id =  "./.downloads/" ++ id
 redisInfo :: R.ConnectInfo
 redisInfo = R.ConnInfo
   {
-      R.connectHost="redis-16666.c284.us-east1-2.gce.cloud.redislabs.com",
-      R.connectPort=R.PortNumber 16666,
-      R.connectAuth=Just "tlgQw0WugrW3xqoBlEe9VJqJk86v4Dy1",
-      R.connectDatabase=0,
-      R.connectMaxConnections=50,
-      R.connectMaxIdleTime=30,
-      R.connectTimeout=Nothing,
-      R.connectTLSParams=Nothing
+      R.connectHost           = 
+        "redis-16666.c284.us-east1-2.gce.cloud.redislabs.com",
+      R.connectPort           = R.PortNumber 16666,
+      R.connectAuth           = Just "tlgQw0WugrW3xqoBlEe9VJqJk86v4Dy1",
+      R.connectDatabase       = 0,
+      R.connectMaxConnections = 50,
+      R.connectMaxIdleTime    = 30,
+      R.connectTimeout        = Nothing,
+      R.connectTLSParams      = Nothing
   }
 
-statusChannel :: REG.ByteString
-statusChannel = "private.ytdl.status"
+resultChannel :: REG.ByteString
+resultChannel = "private.ytdl.result"
 
 successEventBody :: DownloadID -> REG.ByteString
-successEventBody id = statusEventBody id "SUCCESS"
+successEventBody id = resultEventBody id "SUCCESS"
 
 failureEventBody :: DownloadID -> REG.ByteString
-failureEventBody id = statusEventBody id "FAILURE"
+failureEventBody id = resultEventBody id "FAILURE"
 
-statusEventBody :: DownloadID -> String -> REG.ByteString
-statusEventBody id msg =
+resultEventBody :: DownloadID -> String -> REG.ByteString
+resultEventBody id msg =
   REG.pack $ "{\"id\":\"" ++ id ++ "\", \"status\":\"" ++ msg ++ "\"}"
