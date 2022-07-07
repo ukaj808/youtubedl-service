@@ -47,7 +47,7 @@ postDownload = do
   body <- fromBody
   let _ = body :: DownloadReqBody
   response <- liftIO $ processReq body
-  send $ text $ T.pack response
+  send $ status status202 $ text $ T.pack response
 
 deleteAudio :: ResponderM a
 deleteAudio = do
