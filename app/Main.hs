@@ -2,7 +2,6 @@
 
 module Main where
 
-
 import           Types
 import           Web.Twain
 
@@ -71,6 +70,18 @@ download url id = do
   let result = mapResult stdOut
   publishDownloadResult id result
 
+publishDownloadResult :: DownloadID -> Result -> IO ()
+publishDownloadResult id result = do
+  let eventBody | result == Success = successEventBody id
+                | otherwise = failureEventBody id
+  conn <- R.checkedConnect redisInfo
+  R.runRedis conn $ do
+    R.publish statusChannel eventBody
+  print $ id ++ " " ++ (show result)
+
+mapResult :: StdOut -> Result
+mapResult stdout = Success
+
 buildOutput :: DownloadID -> OutputFile
 buildOutput id = (pathToAudio id) ++ "/%(title)s.%(ext)s"
 
@@ -80,10 +91,6 @@ defaultArgs url id = buildArgs url (buildOutput id) "mp3" "./.ffmpeg"
 buildArgs :: URL -> OutputFile -> AudioFormat -> FfmpegLocation -> [String]
 buildArgs url output format loc =
   ["-x", "-o", output, "--audio-format", format, "--ffmpeg-location", loc, url]
-
--- todo
-mapResult :: StdOut -> Result
-mapResult stdout = Success
 
 pathToAudio :: DownloadID -> FilePath
 pathToAudio id =  "./.downloads/" ++ id
@@ -100,15 +107,6 @@ redisInfo = R.ConnInfo
       R.connectTimeout=Nothing,
       R.connectTLSParams=Nothing
   }
-
-publishDownloadResult :: DownloadID -> Result -> IO ()
-publishDownloadResult id result = do
-  let eventBody | result == Success = successEventBody id
-                | otherwise = failureEventBody id
-  conn <- R.checkedConnect redisInfo
-  R.runRedis conn $ do
-    R.publish statusChannel eventBody
-  print $ id ++ " " ++ (show result)
 
 statusChannel :: REG.ByteString
 statusChannel = "private.ytdl.status"
